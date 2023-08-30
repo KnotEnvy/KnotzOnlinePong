@@ -1,0 +1,14 @@
+{
+    "name": "multiplayer-pong",
+    "version": "1.0.0",
+    "description": "Multiplayer Pong game",
+    "main": "server.js",
+    "scripts": {
+      "start": "node server.js"
+    },
+    "dependencies": {
+      "ws": "^8.2.3"
+    }
+  }
+  
+  
