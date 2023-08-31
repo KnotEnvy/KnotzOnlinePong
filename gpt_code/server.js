@@ -1,28 +1,51 @@
+
 const path = require('path');
 const express = require('express');
-const cors = require('cors');  // <-- add this line
+const cors = require('cors');
 const http = require('http');
 const socketIO = require('socket.io');
 
 const app = express();
-app.use(cors());  // <-- add this line
+app.use(cors());
+
+// Serve static files
+app.use(express.static('public'));
 
 const server = http.Server(app);
 
-// Include CORS options
 const io = socketIO(server, {
   cors: {
-    origin: "http://127.0.0.1:3000",
-    methods: ["GET", "POST"]
+    origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
-// Serve static files from the "public" directory
-app.use(express.static(path.join(__dirname, 'public')));
+let gameInitiated = false;
+let playerReadyCount = 0;
 
 io.on('connection', (socket) => {
+  console.log('A user connected');
   socket.on('sendPlayerData', (data) => {
     socket.broadcast.emit('updateOpponent', data);
+  });
+  
+  socket.on('initGame', () => {
+    gameInitiated = true;
+    io.emit('showReadyScreen');
+  });
+
+  socket.on('playerReady', () => {
+    playerReadyCount++;
+    if (gameInitiated && playerReadyCount >= 2) {
+      io.emit('startGame');
+      gameInitiated = false;  // Reset for the next round
+      playerReadyCount = 0;  // Reset for the next round
+    }
+  });
+  
+  socket.on('disconnect', () => {
+    console.log('A user disconnected');
   });
 });
 

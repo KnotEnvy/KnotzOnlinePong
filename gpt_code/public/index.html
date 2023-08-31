@@ -6,11 +6,20 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="game-container">
-    <canvas id="game-canvas" width="800" height="600"></canvas>
-  </div>
+  <h1>Pong Game</h1>
   <button id="start-button">Start Game</button>
   <button id="restart-button" style="display: none;">Restart Game</button>
+  <div id="ready-screen" style="display: none;">
+    <h2>Are You Ready?</h2>
+    <button id="ready-button">Ready!</button>
+  </div>
+  <div id="game-screen" style="display: none;">
+    <div id="score-board">
+      <span id="player1-score">0</span> - <span id="player2-score">0</span>
+    </div>
+    <canvas id="game-canvas" width="800" height="600"></canvas>
+  </div>
+  <!-- <canvas id="game-canvas" width="800" height="600"></canvas> -->
   <script src="socket.io.js"></script>
   <script src="client.js"></script>
 </body>
