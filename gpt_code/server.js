@@ -1,36 +1,28 @@
-
 const path = require('path');
 const express = require('express');
-const cors = require('cors');
 const http = require('http');
 const socketIO = require('socket.io');
 
 const app = express();
-app.use(cors());
 
 // Serve static files
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
-const server = http.Server(app);
-
+const server = http.createServer(app);
 const io = socketIO(server, {
   cors: {
-    origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
-    methods: ["GET", "POST"],
-    credentials: true
+    origin: "*",
+    methods: ["GET", "POST"]
   }
 });
 
 let gameInitiated = false;
 let playerReadyCount = 0;
+let player1Score = 0, player2Score = 0;
+let gameOver = false;
 
 io.on('connection', (socket) => {
-  console.log('A user connected');
-  socket.on('sendPlayerData', (data) => {
-    socket.broadcast.emit('updateOpponent', data);
-  });
-  
-  socket.on('initGame', () => {
+  socket.on('gameInit', () => {
     gameInitiated = true;
     io.emit('showReadyScreen');
   });
@@ -39,13 +31,29 @@ io.on('connection', (socket) => {
     playerReadyCount++;
     if (gameInitiated && playerReadyCount >= 2) {
       io.emit('startGame');
-      gameInitiated = false;  // Reset for the next round
-      playerReadyCount = 0;  // Reset for the next round
+      gameInitiated = false;
+      playerReadyCount = 0;
     }
   });
-  
-  socket.on('disconnect', () => {
-    console.log('A user disconnected');
+
+  socket.on('updateScore', (data) => {
+    player1Score = data.player1Score;
+    player2Score = data.player2Score;
+    if (player1Score >= 5 || player2Score >= 5) {
+      gameOver = true;
+      io.emit('gameOver', player1Score >= 5 ? "Player 1" : "Player 2");
+    }
+  });
+
+  socket.on('sendPlayerData', (data) => {
+    socket.broadcast.emit('updateOpponent', data);
+  });
+
+  socket.on('restartGame', () => {
+    player1Score = 0;
+    player2Score = 0;
+    gameOver = false;
+    io.emit('restartGame');
   });
 });
 

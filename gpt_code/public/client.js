@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", function() {
   const canvas = document.getElementById("game-canvas");
   const ctx = canvas.getContext("2d");
-  const socket = io.connect("http://localhost:3000");
+  const socket = io.connect("/");
 
   let paddleHeight = 100, paddleWidth = 10;
   let myPaddleY = 250, opponentPaddleY = 250;
@@ -9,6 +9,7 @@ document.addEventListener("DOMContentLoaded", function() {
   let isReady = false;
   let gameStarted = false;
   let player1Score = 0, player2Score = 0;
+  let gameOver = false;
 
   // Ready button click event
   document.getElementById("ready-button").addEventListener("click", function() {
@@ -21,7 +22,7 @@ document.addEventListener("DOMContentLoaded", function() {
   document.getElementById("start-button").addEventListener("click", function() {
     document.getElementById("start-button").style.display = "none";
     document.getElementById("ready-screen").style.display = "block";
-    socket.emit('initGame', true);
+    socket.emit('gameInit', true);
   });
 
   // Listen for 'showReadyScreen' event from the server
@@ -37,6 +38,7 @@ document.addEventListener("DOMContentLoaded", function() {
     document.getElementById("game-screen").style.display = "block";
     requestAnimationFrame(draw);
   });
+
   // Player Controls
   window.addEventListener("keydown", function(evt) {
     switch(evt.key) {
@@ -54,8 +56,13 @@ document.addEventListener("DOMContentLoaded", function() {
     opponentPaddleY = data.paddleY;
   });
 
+  socket.on('gameOver', function(winner) {
+    alert(winner + ' wins!');
+    location.reload();
+  });
+
   function draw() {
-    if (!gameStarted) return;
+    if (!gameStarted || gameOver) return;
 
     // Clear the canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -64,6 +71,7 @@ document.addEventListener("DOMContentLoaded", function() {
     ctx.fillStyle = "white";
     ctx.fillRect(0, myPaddleY, paddleWidth, paddleHeight);
     ctx.fillRect(canvas.width - paddleWidth, opponentPaddleY, paddleWidth, paddleHeight);
+
     ctx.beginPath();
     ctx.arc(ballX, ballY, 10, 0, Math.PI * 2);
     ctx.fill();
@@ -71,13 +79,16 @@ document.addEventListener("DOMContentLoaded", function() {
     // Ball physics and collision detection
     ballX += ballSpeedX;
     ballY += ballSpeedY;
+
     if (ballY <= 0 || ballY >= canvas.height) {
       ballSpeedY = -ballSpeedY;
     }
+
     if (ballX <= paddleWidth && ballY > myPaddleY && ballY < myPaddleY + paddleHeight ||
         ballX >= canvas.width - paddleWidth && ballY > opponentPaddleY && ballY < opponentPaddleY + paddleHeight) {
       ballSpeedX = -ballSpeedX;
     }
+
     if (ballX <= 0) {
       player2Score++;
       document.getElementById("player2-score").textContent = player2Score;
@@ -87,6 +98,8 @@ document.addEventListener("DOMContentLoaded", function() {
       document.getElementById("player1-score").textContent = player1Score;
       ballX = canvas.width / 2;
     }
+
+    socket.emit('updateScore', { player1Score, player2Score });
 
     requestAnimationFrame(draw);
   }
